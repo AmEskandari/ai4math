@@ -1,0 +1,321 @@
+---
+import Base from "../../layouts/Base.astro";
+import { SITE } from "../../config";
+import { catalogue, url, withBase, fieldSlug, type Family } from "../../lib/data";
+
+export function getStaticPaths() {
+  const fams = catalogue.families;
+  return fams.map((family, i) => ({
+    params: { num: family.num },
+    props: { family, prev: fams[i - 1] ?? null, next: fams[i + 1] ?? null },
+  }));
+}
+
+interface Props {
+  family: Family;
+  prev: Family | null;
+  next: Family | null;
+}
+
+const { family: f, prev, next } = Astro.props;
+const count = f.manuscripts.length;
+const reportUrl = SITE.repo
+  ? `${SITE.repo}/issues/new?${new URLSearchParams({
+      template: "review.yml",
+      title: `No. ${f.num}: ${f.titleText}`,
+      result: f.num,
+    })}`
+  : null;
+---
+
+<Base title={`No. ${f.num}: ${f.titleText}`} description={f.descriptionText}>
+  <article class="wrap family">
+    <nav class="trail typed" aria-label="Breadcrumb">
+      <a href={url("#catalogue")}>Catalogue</a>
+      <span aria-hidden="true">/</span>
+      <a href={url(`?field=${fieldSlug(f.field)}#catalogue`)}>{f.field}</a>
+    </nav>
+
+    <header class="head">
+      <p class="num typed">No. {f.num}</p>
+      <h1 set:html={f.titleHtml} />
+      <p class="summary" set:html={withBase(f.descriptionHtml)} />
+    </header>
+
+    <section class="record" aria-labelledby="record-title">
+      <h2 id="record-title" class="typed">Verification record</h2>
+      <dl class="typed">
+        <div>
+          <dt>Lean formalization</dt>
+          <dd>
+            {
+              f.lean ? (
+                <>
+                  <span class="stamp">Lean</span> Released by OpenAI. Scope is described below.
+                </>
+              ) : (
+                "None released with this collection."
+              )
+            }
+          </dd>
+        </div>
+        {
+          f.lean && (
+            <div>
+              <dt>Formal statements</dt>
+              <dd>
+                {f.lean.statements.length} {f.lean.statements.length === 1 ? "statement" : "statements"} for the Comparator
+                checker
+              </dd>
+            </div>
+          )
+        }
+        {
+          f.lean && (
+            <div>
+              <dt>Independent build</dt>
+              <dd>Not yet run by this index</dd>
+            </div>
+          )
+        }
+        <div>
+          <dt>Expert review</dt>
+          <dd>
+            None recorded yet.{" "}
+            {reportUrl && <a href={reportUrl}>Submit a review or a reported issue</a>}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    {
+      f.lean && (
+        <section class="scope" aria-labelledby="scope-title">
+          <h2 id="scope-title">What the formalization covers</h2>
+          <div class="prose" set:html={f.lean.scopeHtml} />
+          {f.lean.statements.length > 0 && (
+            <div class="table-plate">
+              <table class="ledger">
+                <caption>
+                  Table I—Formal statements, as listed by OpenAI
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Result</th>
+                    <th scope="col">Lean statement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {f.lean.statements.map((s) => (
+                    <tr>
+                      <td set:html={s.result} />
+                      <td class="typed file">
+                        <a href={s.url}>{s.file}</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p class="source-note">
+            Quoted from OpenAI’s <a href={f.lean.url}>formalization notes</a>.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      f.reasoning && (
+        <section class="reasoning">
+          <h2>The model’s reasoning</h2>
+          <p>
+            OpenAI released an abridged summary of the model’s reasoning for this result.{" "}
+            <a href={f.reasoning.url}>Read the reasoning summary (PDF)</a>
+          </p>
+        </section>
+      )
+    }
+
+    <section class="manuscripts" aria-labelledby="ms-title">
+      <h2 id="ms-title">{count === 1 ? "The manuscript" : `The ${count} manuscripts`}</h2>
+      {
+        f.manuscripts.map((m, i) => (
+          <section class="ms" id={`m${i + 1}`}>
+            <p class="ms-meta typed">
+              <span class="ms-date">{m.date}</span>
+              {m.note && <span>{m.note}</span>}
+              {m.leanFormalized && <span class="stamp">Lean</span>}
+            </p>
+            <h3 set:html={m.titleHtml} />
+            <div class="abstract prose" set:html={withBase(m.abstractHtml)} />
+            <div class="ms-actions">
+              <a class="action" href={m.pdfUrl}>
+                Read the PDF
+              </a>
+              <a class="action" href={m.sourceUrl}>
+                LaTeX source
+              </a>
+              {m.bibtex && (
+                <button type="button" class="action" data-copy={m.bibtex}>
+                  Copy BibTeX
+                </button>
+              )}
+            </div>
+          </section>
+        ))
+      }
+    </section>
+
+    <nav class="pager typed" aria-label="Neighbouring results">
+      {prev ? <a href={url(`family/${prev.num}/`)}>Previous: No. {prev.num}</a> : <span />}
+      {next ? <a href={url(`family/${next.num}/`)}>Next: No. {next.num}</a> : <span />}
+    </nav>
+  </article>
+</Base>
+
+<script is:inline>
+  document.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = "Copied BibTeX";
+      } catch {
+        btn.textContent = "Copy failed. Use the LaTeX source.";
+      }
+      setTimeout(() => (btn.textContent = "Copy BibTeX"), 2400);
+    });
+  });
+</script>
+
+<style>
+  .family {
+    max-width: 56rem;
+  }
+  .trail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    font-size: var(--s-14);
+    color: var(--pencil);
+    padding-top: 2rem;
+  }
+  .head {
+    padding-block: clamp(2rem, 6vw, 3.5rem) 1.5rem;
+  }
+  .num {
+    margin: 0 0 0.75rem;
+    font-size: var(--s-16);
+    color: var(--ribbon);
+  }
+  h1 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(var(--s-30), 5vw, var(--s-52));
+    line-height: 1.12;
+  }
+  .summary {
+    margin: 0;
+    font-size: clamp(var(--s-19), 2.4vw, 1.3125rem);
+    line-height: 1.6;
+    max-width: var(--measure);
+  }
+
+  h2 {
+    font-size: var(--s-30);
+    margin: 0 0 1rem;
+  }
+
+  .record {
+    margin-block: 2rem 3rem;
+    border: 1px solid var(--ink);
+    padding: 1rem clamp(1rem, 3vw, 1.5rem) 0.5rem;
+    background: var(--card);
+  }
+  .record h2 {
+    font-size: var(--s-16);
+    margin: 0 0 0.6rem;
+  }
+  .record dl {
+    margin: 0;
+    font-size: var(--s-14);
+  }
+  .record dl > div {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    padding-block: 0.55rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .record dt {
+    color: var(--pencil);
+  }
+  .record dd {
+    margin: 0;
+  }
+  .record .stamp {
+    margin-right: 0.5rem;
+  }
+
+  .scope,
+  .reasoning {
+    margin-bottom: 3rem;
+  }
+  .table-plate {
+    margin-block: 1.5rem 0.75rem;
+  }
+  td.file {
+    font-size: var(--s-14);
+    overflow-wrap: anywhere;
+  }
+  .source-note {
+    font-size: var(--s-14);
+    font-style: italic;
+    color: var(--pencil);
+  }
+
+  .ms {
+    padding-block: 1.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .ms-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0 0 0.5rem;
+    font-size: var(--s-14);
+    color: var(--pencil);
+  }
+  .ms-meta .stamp {
+    color: var(--stamp);
+  }
+  .ms h3 {
+    font-size: var(--s-24);
+    margin: 0 0 0.75rem;
+  }
+  .abstract {
+    font-size: var(--s-16);
+    line-height: 1.65;
+  }
+  .ms-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+  }
+
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 3px double var(--ink);
+    font-size: var(--s-14);
+  }
+
+  @media (max-width: 560px) {
+    .record dl > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

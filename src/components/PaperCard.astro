@@ -1,0 +1,89 @@
+---
+import type { Family, Manuscript } from "../lib/data";
+import { url, withBase, fieldSlug } from "../lib/data";
+
+interface Props {
+  family: Family;
+  paper: Manuscript;
+  index: number; // 1-based position within the family
+}
+const { family: f, paper: m, index } = Astro.props;
+const total = f.manuscripts.length;
+// The card previews the abstract's first paragraph; the result page has it in full.
+const preview = m.abstractHtml.match(/<p>[\s\S]*?<\/p>/)?.[0] ?? m.abstractHtml;
+---
+
+<article
+  class="card"
+  data-key={`${f.num}-${index}`}
+  data-field={fieldSlug(f.field)}
+  data-lean={m.leanFormalized ? "1" : "0"}
+>
+  <div class="card-head typed">
+    <span>No. {f.num}</span>
+    <span class="quiet">{f.field}</span>
+    <span class="quiet">{m.date}</span>
+    {m.leanFormalized && <span class="stamp" title="A Lean formalization accompanies this paper">Lean</span>}
+  </div>
+  <h3><a href={url(`family/${f.num}/#m${index}`)} set:html={m.titleHtml} /></h3>
+  <div class="abstract" set:html={withBase(preview)} />
+  <p class="meta typed">
+    <a href={m.pdfUrl}>Read the PDF</a>
+    {total > 1 && <span>One of {total} manuscripts in result No. {f.num}</span>}
+  </p>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+    padding: 0.85rem clamp(1rem, 3vw, 1.75rem) 1rem;
+  }
+  .card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1.25rem;
+    font-size: var(--s-14);
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.7rem;
+    /* the red rule of a library catalogue card */
+    border-bottom: 2px solid color-mix(in srgb, var(--ribbon) 75%, transparent);
+  }
+  .card-head .quiet {
+    color: var(--pencil);
+  }
+  .card-head .stamp {
+    margin-left: auto;
+  }
+  h3 {
+    margin: 0 0 0.4rem;
+    font-size: var(--s-24);
+  }
+  h3 a {
+    text-decoration: none;
+  }
+  h3 a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--ribbon);
+  }
+  .abstract :global(p) {
+    margin: 0 0 0.55rem;
+    font-size: var(--s-16);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    margin: 0;
+    font-size: var(--s-14);
+    color: var(--pencil);
+  }
+</style>

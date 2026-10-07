@@ -1,0 +1,104 @@
+---
+import "katex/dist/katex.min.css";
+import "../styles/global.css";
+import { SITE } from "../config";
+import { catalogue, url, shortDate } from "../lib/data";
+
+interface Props {
+  title?: string;
+  description?: string;
+  current?: "catalogue" | "verification" | "about";
+}
+
+const { title, description, current } = Astro.props;
+const { stats, upstream, generatedAt } = catalogue;
+const pageTitle = title ? `${title} | ${SITE.name}` : SITE.name;
+const pageDescription =
+  description ??
+  `An unofficial, searchable index of the ${stats.manuscripts} mathematical manuscripts released by OpenAI, with the Lean formalization status of every result.`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const commit = upstream.commit?.slice(0, 7);
+const ogImage = new URL(url("og.png"), Astro.site).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A catalogue of seven hundred twenty-two manuscripts on open problems in mathematics" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+    <link rel="icon" href={url("favicon.svg")} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap"
+    />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="wrap">
+        <a class="name" href={url()}>{SITE.name}</a>
+        <nav aria-label="Site">
+          <a href={url()} aria-current={current === "catalogue" ? "page" : undefined}>Catalogue</a>
+          <a href={url("verification/")} aria-current={current === "verification" ? "page" : undefined}>Verification</a>
+          <a href={url("about/")} aria-current={current === "about" ? "page" : undefined}>About</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>Blueprint</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="colophon">
+      <div class="wrap">
+        <p>
+          Unofficial index, not affiliated with OpenAI. Papers and proofs © OpenAI (Apache License 2.0) at{" "}
+          <a href={upstream.repo}>github.com/openai/math</a>.
+        </p>
+        <p>
+          Built from{commit ? <> commit <a href={`${upstream.repo}/commit/${upstream.commit}`}>{commit}</a></> : " the latest version"}{" "}
+          on {shortDate(generatedAt)}. <a href={SITE.repo}>Source on GitHub</a>.
+        </p>
+      </div>
+    </footer>
+
+    <script is:inline>
+      (() => {
+        const btn = document.querySelector("[data-theme-toggle]");
+        const root = document.documentElement;
+        const isDark = () => root.dataset.theme === "dark";
+        const label = () => (btn.textContent = isDark() ? "Paper" : "Blueprint");
+        label();
+        btn.addEventListener("click", () => {
+          const next = isDark() ? "light" : "dark";
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem("theme", next);
+          } catch {}
+          label();
+        });
+      })();
+    </script>
+  </body>
+</html>

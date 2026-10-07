@@ -1,0 +1,41 @@
+---
+import Base from "../layouts/Base.astro";
+import { SITE } from "../config";
+import { catalogue } from "../lib/data";
+
+const { stats, upstream } = catalogue;
+---
+
+<Base title="About" current="about">
+  <article class="wrap page">
+    <h1>About</h1>
+    <div class="prose">
+      <p>
+        {SITE.name} makes OpenAI’s release of {stats.manuscripts} mathematical manuscripts searchable, and shows for each
+        result whether a Lean formalization was released and what it covers.
+      </p>
+      <p>
+        It is not affiliated with OpenAI and does not judge whether proofs are correct. The papers, proofs and
+        formalizations stay at <a href={upstream.repo}>github.com/openai/math</a> (© OpenAI, Apache License 2.0); this site
+        links to them and quotes their abstracts.
+      </p>
+      <p>The site rebuilds from OpenAI’s repository every few hours, so corrections there appear here too.</p>
+      {SITE.repo && <p>Corrections and reviews are welcome as <a href={`${SITE.repo}/issues`}>issues on GitHub</a>.</p>}
+    </div>
+  </article>
+</Base>
+
+<style>
+  .page {
+    max-width: 56rem;
+    padding-top: clamp(2.5rem, 7vw, 4.5rem);
+  }
+  h1 {
+    font-size: clamp(var(--s-40), 6vw, var(--s-52));
+    margin: 0 0 1.5rem;
+  }
+  h2 {
+    font-size: var(--s-24);
+    margin: 2.5rem 0 0.75rem;
+  }
+</style>
