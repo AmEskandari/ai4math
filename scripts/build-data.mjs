@@ -12,7 +12,12 @@ const UP = path.resolve(ROOT, process.env.UPSTREAM_DIR ?? "../math");
 const REPO = "https://github.com/openai/math";
 const BLOB = `${REPO}/blob/main/`;
 const TREE = `${REPO}/tree/main/`;
+// Raw file host: serves PDFs with CORS enabled, so the site's reader can load them.
+const RAW = "https://raw.githubusercontent.com/openai/math/main/";
 const OUT = path.join(ROOT, "src/data/catalogue.json");
+// Page counts from scripts/page-counts.mjs, keyed by PDF path.
+const PAGES_FILE = path.join(ROOT, "data/pages.json");
+const pageCounts = fs.existsSync(PAGES_FILE) ? JSON.parse(fs.readFileSync(PAGES_FILE, "utf8")) : {};
 
 const read = (p) => fs.readFileSync(path.join(UP, p), "utf8");
 const exists = (p) => fs.existsSync(path.join(UP, p));
@@ -179,9 +184,12 @@ for (const b of blocks) {
       titleText: plain(title),
       note: note || null,
       pdfUrl: BLOB + pdf,
+      pdfPath: pdf,
+      rawUrl: RAW + pdf.split("/").map(encodeURIComponent).join("/"),
       leanFormalized: leanPapers.has(path.posix.normalize(pdf)),
       abstractHtml: linkResults(renderMd(abstract.trim(), { block: true })),
       abstractText: plain(abstract),
+      pages: pageCounts[pdf]?.pages ?? null,
       ...manuscriptMeta(pdf),
     });
   }

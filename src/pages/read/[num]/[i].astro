@@ -1,0 +1,243 @@
+---
+// A reader for one manuscript. The PDF stays on GitHub; pdf.js loads it from the raw file
+// host (which allows cross-origin requests) and renders it here.
+import Base from "../../../layouts/Base.astro";
+import { catalogue, url, type Family, type Manuscript } from "../../../lib/data";
+
+export function getStaticPaths() {
+  return catalogue.families.flatMap((family) =>
+    family.manuscripts.map((paper, k) => ({
+      params: { num: family.num, i: String(k + 1) },
+      props: { family, paper, index: k + 1 },
+    }))
+  );
+}
+
+interface Props {
+  family: Family;
+  paper: Manuscript;
+  index: number;
+}
+const { family: f, paper: m, index } = Astro.props;
+---
+
+<Base title={m.titleText} description={m.abstractText.slice(0, 300)} app>
+  <section class="reader" data-pdf={m.rawUrl} data-pdf-path={m.pdfPath}>
+    <div class="bar typed">
+      <a class="back" href={url(`family/${f.num}/#m${index}`)}>No. {f.num}</a>
+      <h1 class="title" set:html={m.titleHtml} />
+      <div class="controls">
+        <label class="page">
+          <span class="visually-hidden">Page</span>
+          <input type="text" inputmode="numeric" value="1" aria-label="Page number" data-page />
+          <span>of <span data-count>{m.pages ?? "…"}</span></span>
+        </label>
+        <span class="zoom">
+          <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+          <button type="button" data-zoom="fit">Fit</button>
+          <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+        </span>
+        <a href={m.rawUrl} download>Download</a>
+      </div>
+    </div>
+    <div class="frame">
+      <div id="viewerContainer" tabindex="0">
+        <div id="viewer" class="pdfViewer"></div>
+      </div>
+      <p class="status typed" data-status>Loading the PDF…</p>
+    </div>
+  </section>
+</Base>
+
+<script>
+  // The legacy build carries polyfills, so the reader also works in Safari and older browsers.
+  import "pdfjs-dist/legacy/web/pdf_viewer.css";
+  import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
+
+  const root = document.querySelector<HTMLElement>(".reader")!;
+  const container = document.getElementById("viewerContainer") as HTMLDivElement;
+  const status = document.querySelector<HTMLElement>("[data-status]")!;
+  const pageInput = document.querySelector<HTMLInputElement>("[data-page]")!;
+  const countEl = document.querySelector<HTMLElement>("[data-count]")!;
+
+  async function main() {
+    // The viewer component reads the core library from globalThis when it loads.
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    (globalThis as any).pdfjsLib = pdfjsLib;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+    const { EventBus, PDFLinkService, PDFFindController, PDFViewer } = await import("pdfjs-dist/legacy/web/pdf_viewer.mjs");
+
+    const eventBus = new EventBus();
+    const linkService = new PDFLinkService({ eventBus, externalLinkTarget: 2 /* new tab */ });
+    const findController = new PDFFindController({ eventBus, linkService });
+    const viewer = new PDFViewer({ container, eventBus, linkService, findController, removePageBorders: true });
+    linkService.setViewer(viewer);
+
+    // Fit the page to the window, but no wider than a comfortable reading size.
+    let fitting = true;
+    const fit = () => {
+      fitting = true;
+      viewer.currentScaleValue = "page-width";
+      if (viewer.currentScale > 1.2) viewer.currentScale = 1.2;
+    };
+
+    eventBus.on("pagesinit", () => {
+      fit();
+      const start = Number(location.hash.match(/page=(\d+)/)?.[1]);
+      if (start) viewer.currentPageNumber = start;
+    });
+    eventBus.on("pagechanging", ({ pageNumber }: { pageNumber: number }) => {
+      pageInput.value = String(pageNumber);
+      history.replaceState(null, "", `#page=${pageNumber}`);
+    });
+
+    pageInput.addEventListener("change", () => {
+      const n = Number(pageInput.value);
+      if (n >= 1 && n <= viewer.pagesCount) viewer.currentPageNumber = n;
+      else pageInput.value = String(viewer.currentPageNumber);
+    });
+    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-zoom]")) {
+      btn.addEventListener("click", () => {
+        const z = btn.dataset.zoom;
+        if (z === "fit") return fit();
+        fitting = false;
+        viewer.currentScale = Math.min(4, Math.max(0.5, viewer.currentScale * (z === "in" ? 1.2 : 1 / 1.2)));
+      });
+    }
+    window.addEventListener("resize", () => {
+      if (fitting) fit();
+    });
+
+    try {
+      const doc = await pdfjsLib.getDocument({ url: root.dataset.pdf! }).promise;
+      viewer.setDocument(doc);
+      linkService.setDocument(doc, null);
+      countEl.textContent = String(doc.numPages);
+      status.hidden = true;
+    } catch {
+      status.innerHTML = "";
+      status.append(
+        "The PDF could not be loaded here. ",
+        Object.assign(document.createElement("a"), { href: root.dataset.pdf!, textContent: "Download it instead" }),
+        "."
+      );
+    }
+  }
+
+  main();
+</script>
+
+<style>
+  .reader {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.25rem;
+    padding: 0.55rem var(--gutter);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--s-14);
+  }
+  /* On phones the reader takes the whole screen; the back link replaces the site header. */
+  @media (max-width: 640px) {
+    :global(body.app .masthead) {
+      display: none;
+    }
+    .title {
+      font-size: var(--s-14);
+      flex-basis: 100%;
+      order: -1;
+    }
+  }
+  .back {
+    color: var(--ribbon);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .back::before {
+    content: "‹ ";
+  }
+  .title {
+    flex: 1 1 18rem;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: var(--s-16);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    white-space: nowrap;
+  }
+  .page {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .page input {
+    width: 3.2em;
+    font: inherit;
+    color: var(--ink);
+    text-align: center;
+    background: transparent;
+    border: 0;
+    border-bottom: 1.5px solid var(--ink);
+    border-radius: 0;
+    padding: 0.1rem 0;
+  }
+  .zoom {
+    display: inline-flex;
+    border: 1px solid var(--ink);
+  }
+  .zoom button {
+    font: inherit;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    padding: 0.15rem 0.6rem;
+    cursor: pointer;
+  }
+  .zoom button + button {
+    border-left: 1px solid var(--ink);
+  }
+  .zoom button:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .frame {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: var(--paper-deep);
+  }
+  #viewerContainer {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+  }
+  /* pdf.js pages, set on the engineering-paper background */
+  #viewerContainer :global(.pdfViewer .page) {
+    margin: 14px auto;
+    box-shadow: 0 0 0 1px var(--rule);
+  }
+  .status {
+    position: absolute;
+    top: 2rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: var(--s-14);
+    color: var(--pencil);
+  }
+</style>

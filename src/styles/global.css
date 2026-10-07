@@ -130,6 +130,21 @@ p {
   padding-block: 0.25em;
 }
 
+/* ---------- full-height pages (PDF reader) ---------- */
+
+body.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+body.app > main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---------- masthead + footer ---------- */
 
 .masthead {

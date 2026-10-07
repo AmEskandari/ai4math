@@ -8,9 +8,11 @@ interface Props {
   title?: string;
   description?: string;
   current?: "catalogue" | "verification" | "about";
+  // Full-height page with no footer, for the PDF reader.
+  app?: boolean;
 }
 
-const { title, description, current } = Astro.props;
+const { title, description, current, app = false } = Astro.props;
 const { stats, upstream, generatedAt } = catalogue;
 const pageTitle = title ? `${title} | ${SITE.name}` : SITE.name;
 const pageDescription =
@@ -63,7 +65,7 @@ const ogImage = new URL(url("og.png"), Astro.site).href;
       } catch {}
     </script>
   </head>
-  <body>
+  <body class:list={{ app }}>
     <header class="masthead">
       <div class="wrap">
         <a class="name" href={url()}>{SITE.name}</a>
@@ -80,6 +82,7 @@ const ogImage = new URL(url("og.png"), Astro.site).href;
       <slot />
     </main>
 
+    {!app && (
     <footer class="colophon">
       <div class="wrap">
         <p>
@@ -92,6 +95,7 @@ const ogImage = new URL(url("og.png"), Astro.site).href;
         </p>
       </div>
     </footer>
+    )}
 
     <script is:inline>
       (() => {

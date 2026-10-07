@@ -49,6 +49,12 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
 
+      # Counts pages of new or changed PDFs only; the rest come from data/pages.json.
+      - name: Count PDF pages
+        run: node scripts/page-counts.mjs
+        env:
+          UPSTREAM_DIR: upstream
+
       - name: Build catalogue data
         run: node scripts/build-data.mjs
         env:

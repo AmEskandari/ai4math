@@ -144,14 +144,18 @@ const reportUrl = SITE.repo
           <section class="ms" id={`m${i + 1}`}>
             <p class="ms-meta typed">
               <span class="ms-date">{m.date}</span>
+              {m.pages && <span class="ms-pages">{m.pages} pages</span>}
               {m.note && <span>{m.note}</span>}
               {m.leanFormalized && <span class="stamp">Lean</span>}
             </p>
             <h3 set:html={m.titleHtml} />
             <div class="abstract prose" set:html={withBase(m.abstractHtml)} />
             <div class="ms-actions">
-              <a class="action" href={m.pdfUrl}>
+              <a class="action" href={url(`read/${f.num}/${i + 1}/`)} data-pdf={m.pdfPath}>
                 Read the PDF
+              </a>
+              <a class="action" href={m.rawUrl} download>
+                Download
               </a>
               <a class="action" href={m.sourceUrl}>
                 LaTeX source

@@ -88,6 +88,9 @@ const fragments = (src) =>
     .map((s) => norm(s))
     .filter((s) => s.length >= 12);
 
+const pagesFile = path.join(ROOT, "data/pages.json");
+const pages = fs.existsSync(pagesFile) ? JSON.parse(fs.readFileSync(pagesFile, "utf8")) : {};
+
 const leanDocs = new Set(fs.readdirSync(path.join(UP, "lean/docs")).map((f) => f.slice(0, 3)));
 const fy = yaml.load(up("lean/formalization.yaml"));
 const yamlPapers = new Set(fy.sources.map((s) => path.posix.normalize(path.posix.join("lean", s.id))));
@@ -124,10 +127,7 @@ for (const [num, src] of families) {
 
   // Manuscripts: same set of PDFs as overview.tex lists for this family.
   const sections = doc.querySelectorAll(".ms");
-  const pagePdfs = sections.map((s) => {
-    const a = s.querySelectorAll("a").find((x) => x.textContent.includes("Read the PDF"));
-    return a ? decodeURIComponent(a.getAttribute("href").replace(PREFIX + "blob/main/", "")) : null;
-  });
+  const pagePdfs = sections.map((s) => s.querySelector("a[data-pdf]")?.getAttribute("data-pdf") ?? null);
   const a = [...pagePdfs].sort().join("\n");
   const b = [...src.pdfs].sort().join("\n");
   if (a !== b) fail("manuscript set", num, `page:\n  ${pagePdfs.join("\n  ")}\noverview.tex:\n  ${src.pdfs.join("\n  ")}`);
@@ -159,6 +159,24 @@ for (const [num, src] of families) {
         fail("date", `${num} ${pdf}`, `page "${shown}" vs README "${d}"`);
       count("dates");
     }
+
+    // The reader page linked from this paper loads this same PDF from GitHub's raw host.
+    const readHref = sec.querySelector("a[data-pdf]").getAttribute("href").replace(/^\/[^/]*\/?(?=read\/)/, "");
+    const readFile = path.join(DIST, readHref.replace(/^\//, ""), "index.html");
+    if (!fs.existsSync(readFile)) fail("reader page", `${num} ${pdf}`, `missing ${readHref}`);
+    else {
+      const r = page(path.relative(DIST, readFile)).querySelector(".reader");
+      const raw = "https://raw.githubusercontent.com/openai/math/main/" + pdf.split("/").map(encodeURIComponent).join("/");
+      if (r?.getAttribute("data-pdf-path") !== pdf || r?.getAttribute("data-pdf") !== raw)
+        fail("reader page", `${num} ${pdf}`, `reader loads ${r?.getAttribute("data-pdf")}`);
+      count("reader pages");
+    }
+
+    // Page count matches the PDF (counted by scripts/page-counts.mjs).
+    const want = pages[pdf]?.pages;
+    const shownPages = sec.querySelector(".ms-pages")?.textContent.trim();
+    if (want && shownPages !== `${want} pages`) fail("page count", `${num} ${pdf}`, `page "${shownPages}" vs PDF ${want}`);
+    if (want) count("page counts");
 
     // Papers OpenAI lists in formalization.yaml carry the stamp.
     if (yamlPapers.has(pdf)) {
@@ -197,7 +215,7 @@ const seen = new Set();
 for (const f of fs.readdirSync(DIST, { recursive: true }).filter((f) => f.endsWith(".html"))) {
   const html = fs.readFileSync(path.join(DIST, f), "utf8");
   if (html.includes("katex-error")) fail("math rendering", f, "KaTeX error on page");
-  for (const m of html.matchAll(/href="https:\/\/github\.com\/openai\/math\/(?:blob|tree)\/main\/([^"#]+)"/g)) {
+  for (const m of html.matchAll(/(?:href|data-pdf)="https:\/\/(?:github\.com\/openai\/math\/(?:blob|tree)|raw\.githubusercontent\.com\/openai\/math)\/main\/([^"#]+)"/g)) {
     const p = decodeURIComponent(m[1].replace(/&amp;/g, "&"));
     if (seen.has(p)) continue;
     seen.add(p);
@@ -226,9 +244,7 @@ for (const n of leanDocs) {
 const cards = page("index.html").querySelectorAll(".card");
 if (cards.length !== nMs) fail("home cards", "index", `${cards.length} cards vs ${nMs} manuscripts`);
 for (const card of cards) {
-  const pdf = decodeURIComponent(
-    card.querySelectorAll("a").find((a) => a.textContent.includes("Read the PDF"))?.getAttribute("href")?.replace(PREFIX + "blob/main/", "") ?? ""
-  );
+  const pdf = card.querySelector("a[data-pdf]")?.getAttribute("data-pdf") ?? "";
   const ms = msSource.get(pdf);
   if (!ms) {
     fail("home card", card.getAttribute("data-key"), `unknown PDF ${pdf}`);
@@ -242,6 +258,8 @@ for (const card of cards) {
   const firstPara = ms.abstract.split(/\n\s*\n/)[0];
   const opening = fragments(firstPara)[0];
   if (opening && !body.includes(opening.slice(0, 60))) fail("home card abstract", `${num} ${pdf}`, `missing: "${opening.slice(0, 60)}"`);
+  const cardPages = card.querySelector(".ms-pages")?.textContent.trim();
+  if (pages[pdf] && cardPages !== `${pages[pdf].pages} pages`) fail("home card pages", `${num} ${pdf}`, `"${cardPages}" vs ${pages[pdf].pages}`);
   const want = yamlPapers.has(pdf) || docPapers.has(pdf);
   if (!!card.querySelector(".stamp") !== want) fail("home card stamp", `${num} ${pdf}`, `stamp=${!want}, expected ${want}`);
 }

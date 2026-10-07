@@ -23,12 +23,13 @@ const preview = m.abstractHtml.match(/<p>[\s\S]*?<\/p>/)?.[0] ?? m.abstractHtml;
     <span>No. {f.num}</span>
     <span class="quiet">{f.field}</span>
     <span class="quiet">{m.date}</span>
+    {m.pages && <span class="quiet ms-pages">{m.pages} pages</span>}
     {m.leanFormalized && <span class="stamp" title="A Lean formalization accompanies this paper">Lean</span>}
   </div>
   <h3><a href={url(`family/${f.num}/#m${index}`)} set:html={m.titleHtml} /></h3>
   <div class="abstract" set:html={withBase(preview)} />
   <p class="meta typed">
-    <a href={m.pdfUrl}>Read the PDF</a>
+    <a href={url(`read/${f.num}/${index}/`)} data-pdf={m.pdfPath}>Read the PDF</a>
     {total > 1 && <span>One of {total} manuscripts in result No. {f.num}</span>}
   </p>
 </article>

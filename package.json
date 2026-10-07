@@ -6,13 +6,16 @@
     "dev": "npm run data && astro dev",
     "build": "npm run data && astro build",
     "preview": "astro preview",
-    "audit": "node scripts/audit.mjs"
+    "audit": "node scripts/audit.mjs",
+    "pages": "node scripts/page-counts.mjs"
   },
   "dependencies": {
     "astro": "^7.3.6",
     "js-yaml": "^5.4.3",
     "katex": "^0.19.0",
-    "marked": "^18.1.0"
+    "marked": "^18.1.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299"
   },
   "type": "module",
   "private": true,

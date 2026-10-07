@@ -19,7 +19,10 @@ npm run dev        # builds src/data/catalogue.json, then serves http://localhos
 
 - `scripts/build-data.mjs` reads `CONTENTS.md`, `overview.tex`, `lean/formalization.yaml`, `lean/docs/*.md` and each
   preprint's `README.md`, renders the math with KaTeX, and writes `src/data/catalogue.json`.
-- Astro turns that into static pages: the catalogue, one page per result, and the verification table.
+- `scripts/page-counts.mjs` records each PDF's page count in `data/pages.json`, counting only new or changed PDFs.
+- Astro turns that into static pages: the catalogue, one page per result, the verification table, and a reader page
+  per manuscript. The reader uses pdf.js to show the PDF straight from `raw.githubusercontent.com`, so the PDFs are
+  never copied into this site.
 - `.github/workflows/deploy.yml` rebuilds every three hours from the latest `openai/math` and deploys to GitHub Pages.
 
 ## Accuracy audit
