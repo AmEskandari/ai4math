@@ -46,6 +46,16 @@ const ogImage = new URL(url("og.png"), Astro.site).href;
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap"
     />
+    {
+      import.meta.env.PROD && SITE.goatcounter && (
+        <script
+          is:inline
+          async
+          data-goatcounter={`https://${SITE.goatcounter}.goatcounter.com/count`}
+          src="https://gc.zgo.at/count.js"
+        />
+      )
+    }
     <script is:inline>
       try {
         const t = localStorage.getItem("theme");
