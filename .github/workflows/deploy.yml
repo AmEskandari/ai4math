@@ -1,0 +1,81 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  # Pick up new papers and corrections from openai/math.
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Only the catalogue files are needed, not the 600 MB of PDFs.
+      - name: Check out openai/math (catalogue files only)
+        uses: actions/checkout@v4
+        with:
+          repository: openai/math
+          path: upstream
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /README.md
+            /CONTENTS.md
+            /overview.tex
+            /lean/formalization.yaml
+            /lean/docs/
+            /preprints/*/README.md
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build catalogue data
+        run: node scripts/build-data.mjs
+        env:
+          UPSTREAM_DIR: upstream
+
+      - name: Build site
+        run: npx astro build
+        env:
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
+      # Every page is checked against openai/math; a mismatch stops the deploy.
+      - name: Audit site against upstream
+        run: node scripts/audit.mjs
+        env:
+          UPSTREAM_DIR: upstream
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

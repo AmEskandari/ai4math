@@ -1,0 +1,22 @@
+{
+  "name": "machine-manuscripts",
+  "version": "1.0.0",
+  "scripts": {
+    "data": "node scripts/build-data.mjs",
+    "dev": "npm run data && astro dev",
+    "build": "npm run data && astro build",
+    "preview": "astro preview",
+    "audit": "node scripts/audit.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.3.6",
+    "js-yaml": "^5.4.3",
+    "katex": "^0.19.0",
+    "marked": "^18.1.0"
+  },
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "node-html-parser": "^9.0.4"
+  }
+}

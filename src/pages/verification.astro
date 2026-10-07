@@ -1,0 +1,143 @@
+---
+import Base from "../layouts/Base.astro";
+import { catalogue, url, fieldSlug } from "../lib/data";
+
+const { stats, fields } = catalogue;
+const pct = (a: number, b: number) => `${Math.round((100 * a) / b)}%`;
+const sorted = [...fields].sort((a, b) => b.leanFamilies / b.families - a.leanFamilies / a.families);
+---
+
+<Base
+  title="Verification"
+  current="verification"
+  description="Which of OpenAI's machine-generated mathematical results have a Lean formalization, by field, and what each verification status means."
+>
+  <article class="wrap page">
+    <h1>Verification</h1>
+    <div class="prose">
+      <p>
+        This index does not judge whether proofs are correct. It shows what has been checked and links to the evidence.{" "}
+        {stats.leanFamilies} of the {stats.families} results ({pct(stats.leanFamilies, stats.families)}) come with a Lean
+        formalization from OpenAI.
+      </p>
+    </div>
+
+    <section aria-labelledby="statuses">
+      <h2 id="statuses">What each status means</h2>
+      <dl class="statuses">
+        <div>
+          <dt><span class="stamp">Lean</span></dt>
+          <dd>
+            OpenAI released a Lean formalization. It may cover only part of the paper, and whether its formal statement
+            matches the paper’s claim still needs an expert to compare them. Each result’s page says what is covered.
+          </dd>
+        </div>
+        <div>
+          <dt class="typed">No formalization</dt>
+          <dd>Only the written manuscript is available.</dd>
+        </div>
+        <div>
+          <dt class="typed">Independent build</dt>
+          <dd>
+            This index compiles the formalization itself and checks it with{" "}
+            <a href="https://github.com/leanprover/comparator">Comparator</a>. Coming next.
+          </dd>
+        </div>
+        <div>
+          <dt class="typed">Expert review</dt>
+          <dd>Public assessments by mathematicians, each linked to its source. None yet.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="by-field">
+      <h2 id="by-field">Formalization by field</h2>
+      <div class="table-plate">
+        <table class="ledger">
+          <caption>Table I—Results with a released Lean formalization, by field</caption>
+          <thead>
+            <tr>
+              <th scope="col">Field</th>
+              <th scope="col" class="num">Results</th>
+              <th scope="col" class="num">Manuscripts</th>
+              <th scope="col" class="num">With Lean</th>
+              <th scope="col" class="num">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              sorted.map((f) => (
+                <tr>
+                  <td>
+                    <a href={url(`?field=${fieldSlug(f.name)}#catalogue`)}>{f.name}</a>
+                  </td>
+                  <td class="num">{f.families}</td>
+                  <td class="num">{f.manuscripts}</td>
+                  <td class="num">{f.leanFamilies}</td>
+                  <td class="num">{pct(f.leanFamilies, f.families)}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">All fields</th>
+              <td class="num">{stats.families}</td>
+              <td class="num">{stats.manuscripts}</td>
+              <td class="num">{stats.leanFamilies}</td>
+              <td class="num">{pct(stats.leanFamilies, stats.families)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </article>
+</Base>
+
+<style>
+  .page {
+    max-width: 56rem;
+    padding-top: clamp(2.5rem, 7vw, 4.5rem);
+  }
+  h1 {
+    font-size: clamp(var(--s-40), 6vw, var(--s-52));
+    margin: 0 0 1.5rem;
+  }
+  h2 {
+    font-size: var(--s-30);
+    margin: 3.5rem 0 1rem;
+  }
+  .statuses {
+    margin: 0;
+  }
+  .statuses > div {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 0.5rem 1.5rem;
+    padding-block: 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .statuses dt {
+    font-size: var(--s-14);
+    padding-top: 0.3rem;
+  }
+  .statuses dd {
+    margin: 0;
+    font-size: var(--s-16);
+  }
+  tfoot th,
+  tfoot td {
+    border-top: 1px solid var(--ink);
+    font-weight: 700;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+  }
+  tfoot td.num {
+    text-align: right;
+  }
+  @media (max-width: 560px) {
+    .statuses > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

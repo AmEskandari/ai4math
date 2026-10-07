@@ -1,0 +1,288 @@
+/* The Machine Manuscripts: a technical-memorandum index.
+   Default: engineering paper, blue-black ink, a two-colour typewriter ribbon, violet stamp ink.
+   Optional "Blueprint" (data-theme="dark"): cyanotype blueprint. */
+
+:root {
+  --paper: #eceee6;
+  --paper-deep: #e2e6db;
+  --card: #f5f6f1;
+  --ink: #1d2533;
+  --pencil: #5c6359;
+  --grid: #c7d4c3;
+  --rule: #98a394;
+  --ribbon: #a3312a;
+  --stamp: #4a3c8c;
+
+  --serif: "Old Standard TT", "Iowan Old Style", "Times New Roman", serif;
+  --type: "Courier Prime", "Courier New", Courier, monospace;
+
+  /* Classic scale: 12 · 14 · 16 · 19 · 24 · 30 · 40 · 52 */
+  --s-12: 0.75rem;
+  --s-14: 0.875rem;
+  --s-16: 1rem;
+  --s-19: 1.1875rem;
+  --s-24: 1.5rem;
+  --s-30: 1.875rem;
+  --s-40: 2.5rem;
+  --s-52: 3.25rem;
+
+  --measure: 100%;
+  --gutter: 16px;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #112b49;
+  --paper-deep: #0d2440;
+  --card: #15335a;
+  --ink: #e7eef5;
+  --pencil: #a7bbcf;
+  --grid: #1f4369;
+  --rule: #4f7298;
+  --ribbon: #f39c8f;
+  --stamp: #c9bdff;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--s-19);
+  line-height: 1.6;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--rule);
+}
+a:hover {
+  text-decoration-color: var(--ribbon);
+  color: var(--ribbon);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ribbon);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--ribbon) 25%, transparent);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.typed {
+  font-family: var(--type);
+}
+
+.wrap {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* KaTeX sits a touch large next to Old Standard. */
+.katex {
+  font-size: 1.04em;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25em;
+}
+
+/* ---------- masthead + footer ---------- */
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+}
+.masthead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-block: 0.9rem;
+}
+.masthead .name {
+  font-family: var(--type);
+  font-weight: 700;
+  font-size: var(--s-16);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.masthead nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  font-family: var(--type);
+  font-size: var(--s-14);
+}
+.masthead nav a {
+  text-decoration: none;
+}
+.masthead nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-color: var(--ribbon);
+  text-decoration-thickness: 2px;
+}
+.theme-toggle {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted var(--rule);
+  text-underline-offset: 0.2em;
+}
+
+.colophon {
+  margin-top: 6rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--type);
+  font-size: var(--s-14);
+  color: var(--pencil);
+}
+.colophon .wrap {
+  padding-block: 1.5rem 3rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.colophon p {
+  margin: 0;
+}
+
+/* ---------- the Lean stamp ---------- */
+
+.stamp {
+  display: inline-block;
+  font-family: var(--type);
+  font-weight: 700;
+  font-size: var(--s-12);
+  letter-spacing: 0.12em;
+  color: var(--stamp);
+  border: 2px solid var(--stamp);
+  outline: 1px solid var(--stamp);
+  outline-offset: 2px;
+  padding: 0.05rem 0.45rem;
+  transform: rotate(-4deg);
+  opacity: 0.88;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+/* ---------- buttons (typed) ---------- */
+
+.action {
+  font-family: var(--type);
+  font-size: var(--s-14);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink);
+  padding: 0.3rem 0.7rem;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 1.4;
+}
+.action:hover {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+/* ---------- prose blocks ---------- */
+
+.prose {
+  max-width: var(--measure);
+}
+.prose p {
+  margin: 0 0 0.9em;
+}
+
+/* ---------- old-style tables ---------- */
+
+.table-plate {
+  overflow-x: auto;
+}
+table.ledger {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--s-16);
+  border-top: 3px double var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+table.ledger caption {
+  caption-side: top;
+  text-align: left;
+  font-family: var(--type);
+  font-size: var(--s-14);
+  padding-bottom: 0.6rem;
+}
+table.ledger th,
+table.ledger td {
+  padding: 0.45rem 0.75rem 0.45rem 0;
+  text-align: left;
+  vertical-align: baseline;
+}
+table.ledger thead th {
+  font-weight: 400;
+  font-style: italic;
+  border-bottom: 1px solid var(--ink);
+}
+table.ledger td.num,
+table.ledger th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+table.ledger tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--rule) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

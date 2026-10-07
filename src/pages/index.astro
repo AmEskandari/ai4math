@@ -1,0 +1,382 @@
+---
+import Base from "../layouts/Base.astro";
+import PaperCard from "../components/PaperCard.astro";
+import { catalogue, fieldSlug, url } from "../lib/data";
+
+const { stats, fields, families, releaseDate } = catalogue;
+const searchUrl = url("search.json");
+---
+
+<Base current="catalogue">
+  <section class="title-page wrap" aria-labelledby="title">
+    <h1 id="title" class="typed">{stats.manuscripts} manuscripts on open problems in mathematics</h1>
+    <p class="typed">Produced by an internal OpenAI model, released {releaseDate}</p>
+    <p class="note">Unofficial index of <a href={catalogue.upstream.repo}>github.com/openai/math</a></p>
+  </section>
+
+  <section class="wrap catalogue" id="catalogue" aria-labelledby="catalogue-title">
+    <h2 id="catalogue-title">The catalogue</h2>
+    <p class="lede">
+      {stats.manuscripts} manuscripts, which OpenAI groups into {stats.families} results. Papers marked{" "}
+      <span class="stamp inline-stamp">Lean</span>{" "}come with a Lean formalization.
+    </p>
+
+    <div class="layout">
+      <aside class="fields" aria-label="Filter by field">
+        <details open data-fields-details>
+          <summary class="typed">Fields of mathematics</summary>
+          <ul class="toc" role="list">
+            <li>
+              <button type="button" class="toc-item" data-field="" aria-pressed="true">
+                <span>All fields</span><span class="leader" aria-hidden="true"></span><span class="count">{stats.manuscripts}</span>
+              </button>
+            </li>
+            {
+              fields.map((f) => (
+                <li>
+                  <button type="button" class="toc-item" data-field={fieldSlug(f.name)} aria-pressed="false">
+                    <span>{f.name}</span>
+                    <span class="leader" aria-hidden="true" />
+                    <span class="count">{f.manuscripts}</span>
+                  </button>
+                </li>
+              ))
+            }
+          </ul>
+        </details>
+      </aside>
+
+      <div class="results">
+        <form class="controls" role="search" onsubmit="return false">
+          <label class="search">
+            <span class="typed">Search titles and abstracts</span>
+            <input class="typed" type="search" name="q" autocomplete="off" spellcheck="false" placeholder="e.g. Kaplansky, Riemann, spin glass" />
+          </label>
+          <fieldset class="status typed">
+            <legend class="visually-hidden">Lean formalization</legend>
+            <label><input type="radio" name="lean" value="" checked /><span>All</span></label>
+            <label><input type="radio" name="lean" value="1" /><span>With Lean</span></label>
+            <label><input type="radio" name="lean" value="0" /><span>Without Lean</span></label>
+          </fieldset>
+        </form>
+
+        <p class="tally typed" aria-live="polite" data-tally>Showing all {stats.manuscripts} manuscripts.</p>
+
+        <div class="cards" data-cards>
+          {families.flatMap((f) => f.manuscripts.map((m, i) => <PaperCard family={f} paper={m} index={i + 1} />))}
+        </div>
+
+        <div class="empty" data-empty hidden>
+          <p>No manuscript matches these filters.</p>
+          <button type="button" class="action" data-clear>Clear filters</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script is:inline define:vars={{ searchUrl, total: stats.manuscripts }}>
+  (() => {
+    const cards = [...document.querySelectorAll("[data-cards] .card")];
+    const input = document.querySelector('input[name="q"]');
+    const leanRadios = [...document.querySelectorAll('input[name="lean"]')];
+    const fieldButtons = [...document.querySelectorAll(".toc-item")];
+    const tally = document.querySelector("[data-tally]");
+    const empty = document.querySelector("[data-empty]");
+    const details = document.querySelector("[data-fields-details]");
+    const fieldNames = Object.fromEntries(
+      fieldButtons.map((b) => [b.dataset.field, b.querySelector("span").textContent])
+    );
+
+    const state = { q: "", field: "", lean: "" };
+    let index = null;
+    let loading = null;
+
+    const loadIndex = () =>
+      (loading ??= fetch(searchUrl)
+        .then((r) => r.json())
+        .then((rows) => (index = new Map(rows.map((r) => [r.n, r.t])))));
+
+    const words = (q) => q.toLowerCase().split(/\s+/).filter(Boolean);
+
+    function apply() {
+      const terms = words(state.q);
+      let shown = 0;
+      for (const card of cards) {
+        const text = index?.get(card.dataset.key) ?? card.textContent.toLowerCase();
+        const ok =
+          (!state.field || card.dataset.field === state.field) &&
+          (!state.lean || card.dataset.lean === state.lean) &&
+          terms.every((t) => text.includes(t));
+        card.hidden = !ok;
+        if (ok) shown++;
+      }
+      empty.hidden = shown > 0;
+      const scope = state.field ? ` in ${fieldNames[state.field]}` : "";
+      tally.textContent =
+        shown === total ? `Showing all ${total} manuscripts.` : `Showing ${shown} of ${total} manuscripts${scope}.`;
+
+      fieldButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.field === state.field)));
+      leanRadios.forEach((r) => (r.checked = r.value === state.lean));
+
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(state)) if (v) params.set(k, v);
+      const qs = params.toString();
+      history.replaceState(null, "", qs ? `?${qs}#catalogue` : location.pathname);
+    }
+
+    input.addEventListener("input", () => {
+      state.q = input.value.trim();
+      if (!index) loadIndex().then(apply);
+      apply();
+    });
+    leanRadios.forEach((r) =>
+      r.addEventListener("change", () => {
+        state.lean = r.value;
+        apply();
+      })
+    );
+    fieldButtons.forEach((b) =>
+      b.addEventListener("click", () => {
+        state.field = b.dataset.field;
+        apply();
+        if (matchMedia("(max-width: 860px)").matches) {
+          details.open = false;
+          document.getElementById("catalogue-title").scrollIntoView({ behavior: "smooth" });
+        }
+      })
+    );
+    document.querySelector("[data-clear]").addEventListener("click", () => {
+      Object.assign(state, { q: "", field: "", lean: "" });
+      input.value = "";
+      apply();
+    });
+
+    if (matchMedia("(max-width: 860px)").matches) details.open = false;
+
+    const params = new URLSearchParams(location.search);
+    state.q = params.get("q") ?? "";
+    state.field = fieldNames[params.get("field")] ? params.get("field") : "";
+    state.lean = ["0", "1"].includes(params.get("lean")) ? params.get("lean") : "";
+    input.value = state.q;
+    if (state.q || state.field || state.lean) {
+      if (state.q) loadIndex().then(apply);
+      apply();
+    }
+  })();
+</script>
+
+<style>
+  .title-page {
+    text-align: center;
+    padding-block: clamp(3.5rem, 10vw, 7rem) clamp(2.5rem, 6vw, 4rem);
+  }
+  .title-page h1 {
+    margin: 0 auto 1.5rem;
+    max-width: 30ch;
+    font-size: clamp(1.0625rem, 3.4vw, var(--s-30));
+    font-weight: 700;
+    line-height: 1.55;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .title-page p.typed {
+    margin: 0 auto 1.9rem;
+    font-size: clamp(1rem, 2.2vw, var(--s-19));
+    line-height: 1.6;
+  }
+  .title-page .note {
+    margin: 1.5rem auto 0;
+    max-width: 34rem;
+    font-size: var(--s-16);
+    font-style: italic;
+    color: var(--pencil);
+  }
+
+  .catalogue h2 {
+    font-size: var(--s-40);
+    margin: 0 0 0.75rem;
+  }
+  .lede {
+    max-width: var(--measure);
+    margin: 0 0 2.25rem;
+  }
+  .inline-stamp {
+    transform: rotate(-4deg) translateY(-2px);
+    margin-inline: 0.15rem;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .fields {
+    position: sticky;
+    top: 1.25rem;
+    max-height: calc(100vh - 2.5rem);
+    overflow-y: auto;
+  }
+  .fields summary {
+    font-size: var(--s-14);
+    font-weight: 700;
+    cursor: pointer;
+    padding-bottom: 0.5rem;
+    list-style: none;
+  }
+  .fields summary::-webkit-details-marker {
+    display: none;
+  }
+  .toc {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    width: 100%;
+    gap: 0.35rem;
+    padding: 0.28rem 0;
+    font: inherit;
+    font-size: var(--s-16);
+    line-height: 1.35;
+    color: inherit;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+  }
+  .toc-item .leader {
+    flex: 1;
+    min-width: 1rem;
+    border-bottom: 1.5px dotted var(--rule);
+    transform: translateY(-0.3em);
+  }
+  .toc-item .count {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .toc-item:hover span:first-child {
+    color: var(--ribbon);
+  }
+  .toc-item[aria-pressed="true"] span:first-child {
+    text-decoration: underline;
+    text-decoration-color: var(--ribbon);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  .controls {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .search {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .search > span {
+    font-size: var(--s-14);
+    color: var(--pencil);
+  }
+  .search input {
+    width: 100%;
+    font-size: var(--s-19);
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    border-bottom: 1.5px solid var(--ink);
+    border-radius: 0;
+    padding: 0.35rem 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .search input::placeholder {
+    color: color-mix(in srgb, var(--pencil) 75%, transparent);
+  }
+  .search input:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ribbon);
+    box-shadow: 0 1.5px 0 var(--ribbon);
+  }
+
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    font-size: var(--s-14);
+  }
+  .status label {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: baseline;
+  }
+  .status input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  /* Typed check boxes: [ ] and [x] */
+  .status span::before {
+    content: "[ ] ";
+    white-space: pre;
+  }
+  .status input:checked + span::before {
+    content: "[x] ";
+    color: var(--ribbon);
+    font-weight: 700;
+  }
+  .status input:focus-visible + span {
+    outline: 2px solid var(--ribbon);
+    outline-offset: 3px;
+  }
+
+  .tally {
+    font-size: var(--s-14);
+    color: var(--pencil);
+    margin: 0 0 1rem;
+  }
+
+  .cards {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .empty {
+    padding: 2rem 0;
+  }
+  .empty p {
+    margin: 0 0 1rem;
+  }
+
+  @media (max-width: 860px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
+    .fields {
+      position: static;
+      max-height: none;
+      border: 1px solid var(--rule);
+      padding: 0.6rem 0.9rem;
+    }
+    .fields summary {
+      padding-bottom: 0;
+    }
+    .fields details[open] summary {
+      padding-bottom: 0.5rem;
+    }
+    .fields summary::after {
+      content: " [+]";
+      color: var(--ribbon);
+    }
+    .fields details[open] summary::after {
+      content: " [–]";
+    }
+  }
+</style>

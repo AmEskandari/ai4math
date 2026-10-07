@@ -1,0 +1,46 @@
+name: Review or reported issue
+description: Point to a public assessment of a result, or report an error in a manuscript or on this site.
+title: "No. ___: "
+labels: ["review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This index records what others have checked, with a source for every entry. It does not publish unsourced verdicts.
+  - type: input
+    id: result
+    attributes:
+      label: Result number
+      description: The three-digit number shown on the result's page, e.g. 087.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you submitting?
+      options:
+        - An expert assessment (blog post, paper, MathOverflow answer, talk)
+        - A reported error or gap in a manuscript
+        - A problem with a Lean formalization
+        - A mistake on this site
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Link to the source
+      description: A public URL where the assessment or report appears.
+    validations:
+      required: true
+  - type: textarea
+    id: quote
+    attributes:
+      label: What the source says
+      description: Quote the relevant passage directly rather than summarizing it.
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: Who wrote it (optional)
+      description: Name and affiliation, if the source gives them.
