@@ -91,7 +91,7 @@ const ogImage = new URL(url("og.png"), Astro.site).href;
         </p>
         <p>
           Built from{commit ? <> commit <a href={`${upstream.repo}/commit/${upstream.commit}`}>{commit}</a></> : " the latest version"}{" "}
-          on {shortDate(generatedAt)}. <a href={SITE.repo}>Source on GitHub</a>.
+          on {shortDate(generatedAt)}. Built by <a href={SITE.author.url}>{SITE.author.name}</a>.
         </p>
       </div>
     </footer>

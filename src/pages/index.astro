@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import { SITE } from "../config";
 import PaperCard from "../components/PaperCard.astro";
 import { catalogue, fieldSlug, url } from "../lib/data";
 
@@ -11,7 +12,10 @@ const searchUrl = url("search.json");
   <section class="title-page wrap" aria-labelledby="title">
     <h1 id="title" class="typed">{stats.manuscripts} manuscripts on open problems in mathematics</h1>
     <p class="typed">Produced by an internal OpenAI model, released {releaseDate}</p>
-    <p class="note">Unofficial index of <a href={catalogue.upstream.repo}>github.com/openai/math</a></p>
+    <p class="note">
+      Unofficial index of <a href={catalogue.upstream.repo}>github.com/openai/math</a> / Built by{" "}
+      <a href={SITE.author.url}>{SITE.author.name}</a>
+    </p>
   </section>
 
   <section class="wrap catalogue" id="catalogue" aria-labelledby="catalogue-title">
